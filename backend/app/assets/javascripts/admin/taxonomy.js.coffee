@@ -9,12 +9,17 @@ handle_move = (e, data) ->
   new_parent = data.rslt.np
 
   url = Spree.url(base_url).clone()
-  url.setPath url.path() + '/' + node.attr("id")
+  url.setPath url.path() + '/' + node.prop("id")
   $.ajax
     type: "POST",
     dataType: "json",
     url: url.toString(),
-    data: ({_method: "put", "taxon[parent_id]": new_parent.attr("id"), "taxon[child_index]": position }),
+    data: {
+      _method: "put",
+      "taxon[parent_id]": new_parent.prop("id"),
+      "taxon[child_index]": position,
+      token: Spree.api_key
+    },
     error: handle_ajax_error
 
   true
@@ -30,10 +35,15 @@ handle_create = (e, data) ->
     type: "POST",
     dataType: "json",
     url: base_url.toString(),
-    data: ({"taxon[name]": name, "taxon[parent_id]": new_parent.attr("id"), "taxon[child_index]": position }),
+    data: {
+      "taxon[name]": name,
+      "taxon[parent_id]": new_parent.prop("id"),
+      "taxon[child_index]": position,
+      token: Spree.api_key
+    },
     error: handle_ajax_error,
     success: (data,result) ->
-      node.attr('id', data.id)
+      node.prop('id', data.id)
 
 handle_rename = (e, data) ->
   last_rollback = data.rlbk
@@ -41,27 +51,34 @@ handle_rename = (e, data) ->
   name = data.rslt.new_name
 
   url = Spree.url(base_url).clone()
-  url.setPath(url.path() + '/' + node.attr("id"))
+  url.setPath(url.path() + '/' + node.prop("id"))
 
   $.ajax
     type: "POST",
     dataType: "json",
     url: url.toString(),
-    data: {_method: "put", "taxon[name]": name },
+    data: {
+      _method: "put",
+      "taxon[name]": name,
+      token: Spree.api_key
+    },
     error: handle_ajax_error
 
 handle_delete = (e, data) ->
   last_rollback = data.rlbk
   node = data.rslt.obj
   delete_url = base_url.clone()
-  delete_url.setPath delete_url.path() + '/' + node.attr("id")
+  delete_url.setPath delete_url.path() + '/' + node.prop("id")
   jConfirm Spree.translations.are_you_sure_delete, Spree.translations.confirm_delete, (r) ->
     if r
       $.ajax
         type: "POST",
         dataType: "json",
         url: delete_url.toString(),
-        data: {_method: "delete"},
+        data: {
+          _method: "delete",
+          token: Spree.api_key
+        },
         error: handle_ajax_error
     else
       $.jstree.rollback(last_rollback)
@@ -75,6 +92,8 @@ root.setup_taxonomy_tree = (taxonomy_id) ->
 
     $.ajax
       url: Spree.url(base_url.path().replace("/taxons", "/jstree")).toString(),
+      data:
+        token: Spree.api_key
       success: (taxonomy) ->
         last_rollback = null
 
@@ -83,7 +102,7 @@ root.setup_taxonomy_tree = (taxonomy_id) ->
             data: taxonomy,
             ajax:
               url: (e) ->
-                Spree.url(base_url.path() + '/' + e.prop('id') + '/jstree').toString()
+                Spree.url(base_url.path() + '/' + e.prop('id') + '/jstree' + '?token=' + Spree.api_key).toString()
           themes:
             theme: "apple",
             url: Spree.url(Spree.routes.jstree_theme_path)
@@ -98,11 +117,11 @@ root.setup_taxonomy_tree = (taxonomy_id) ->
                 new_parent = m.np
 
                 # no parent or cant drag and drop
-                if !new_parent || node.attr("rel") == "root"
+                if !new_parent || node.prop("rel") == "root"
                   return false
 
                 # can't drop before root
-                if new_parent.attr("id") == "taxonomy_tree" && position == 0
+                if new_parent.prop("id") == "taxonomy_tree" && position == 0
                   return false
 
                 true
